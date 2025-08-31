@@ -1,10 +1,14 @@
 {
   "name": "atividade_fluxo_api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API com autenticação JWT + Redis + PostgreSQL",
+  "main": "src/Server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/Server.js",
+    "dev": "nodemon src/Server.js",
+    "docker": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "keywords": [],
   "author": "",

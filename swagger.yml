@@ -1,7 +1,13 @@
 openapi: 3.0.0
 info:
-  title: API Auth
+  title: API de Autenticação
   version: 1.0.0
+  description: Autenticação com JWT + Redis (blacklist) e rotas protegidas.
+
+servers:
+  - url: http://localhost:3000
+    description: Local
+
 paths:
   /auth/register:
     post:
@@ -15,16 +21,27 @@ paths:
               type: object
               required: [name, email, password]
               properties:
-                name: { type: string }
-                email: { type: string }
-                password: { type: string }
+                name: { type: string, example: Pedro Lima }
+                email: { type: string, example: pedro@email.com }
+                password: { type: string, example: 123456 }
       responses:
         '201':
           description: Usuário criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string }
+                  email: { type: string }
+        '400': { description: Dados inválidos }
+        '409': { description: Email já cadastrado }
+
   /auth/login:
     post:
       tags: [Auth]
-      summary: Login
+      summary: Login de usuário
       requestBody:
         required: true
         content:
@@ -33,29 +50,79 @@ paths:
               type: object
               required: [email, password]
               properties:
-                email: { type: string }
-                password: { type: string }
+                email: { type: string, example: pedro@email.com }
+                password: { type: string, example: 123456 }
       responses:
         '200':
-          description: Retorna JWT
+          description: Login OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string, description: JWT }
+                  expires_at: { type: integer, description: Epoch seconds }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string, format: uuid }
+                      name: { type: string }
+                      email: { type: string }
+        '401': { description: Credenciais inválidas }
+
   /auth/logout:
     post:
       tags: [Auth]
-      summary: Logout
+      summary: Logout seguro (blacklist Redis)
       security:
         - bearerAuth: []
       responses:
-        '200':
-          description: Logout realizado
+        '200': { description: Logout realizado com sucesso }
+        '401': { description: Token ausente ou inválido }
+
   /protected/me:
     get:
       tags: [Protected]
       summary: Dados do usuário autenticado
+      description: Requer header **Authorization: Bearer &lt;jwt_token&gt;**
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Retorna user
+          description: Dados do usuário
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      email: { type: string }
+                      iat: { type: integer }
+                      exp: { type: integer }
+        '401': { description: Não autorizado }
+
+  /protected/ping:
+    get:
+      tags: [Protected]
+      summary: Ping autenticado
+      description: Requer header **Authorization: Bearer &lt;jwt_token&gt;**
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  time: { type: string, format: date-time }
+        '401': { description: Não autorizado }
+
 components:
   securitySchemes:
     bearerAuth:
